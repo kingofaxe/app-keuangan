@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB:       catatan
       POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres_password_ganti_ini
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,8 +25,8 @@ services:
       DB_PORT:     5432
       DB_NAME:     catatan
       DB_USER:     postgres
-      DB_PASSWORD: postgres_password_ganti_ini
-      JWT_SECRET:  jwt_secret_ganti_dengan_random_string_panjang
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET:  ${JWT_SECRET}
       UPLOAD_DIR:  /uploads
       PORT:        3001
     volumes:
