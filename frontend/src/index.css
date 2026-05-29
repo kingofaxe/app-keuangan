@@ -1,0 +1,309 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-page:    linear-gradient(180deg, #fdfbf7 0%, #f5f4f8 100%);
+  --bg-app:     #ffffff;
+  --bg-section: #fbfbfd;
+  --bg-card:    #ffffff;
+  --bg-input:   #f4f4f7;
+  --border:     #e9e9ee;
+  --text:       #111111;
+  --text-sub:   #7c7c7c;
+  --text-muted: #c5c5c9;
+  --row-border: #f5f5f9;
+  --nav-bg:     #ffffff;
+  --nav-border: #efefe3;
+  --wallet-bg:  #fdfbfa;
+  --shadow-sm:  0 2px 6px rgba(0,0,0,.02);
+  --shadow-md:  0 8px 20px rgba(0,0,0,.04);
+  --shadow-lg:  0 16px 36px rgba(0,0,0,.06);
+  --shadow-app: 0 24px 50px rgba(0,0,0,.08);
+  --primary:    #ffd233; /* Soft Gold / Warm Yellow accent from image */
+  --primary-light: #fff9db;
+}
+
+[data-theme="dark"] {
+  --bg-page:    linear-gradient(180deg, #111115 0%, #1c1c24 100%);
+  --bg-app:     #171721;
+  --bg-section: #20202e;
+  --bg-card:    #20202e;
+  --bg-input:   #171721;
+  --border:     #2b2b3d;
+  --text:       #f7f7f9;
+  --text-sub:   #a0a0b0;
+  --text-muted: #5c5c6f;
+  --row-border: #2b2b3d;
+  --nav-bg:     #171721;
+  --nav-border: #2b2b3d;
+  --wallet-bg:  #20202e;
+  --shadow-sm:  0 2px 6px rgba(0,0,0,.4);
+  --shadow-md:  0 8px 20px rgba(0,0,0,.45);
+  --shadow-lg:  0 16px 36px rgba(0,0,0,.5);
+  --shadow-app: 0 24px 50px rgba(0,0,0,.6);
+  --primary:    #ffd233;
+  --primary-light: #302a0b;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-page);
+  min-height: 100vh;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+button { cursor: pointer; font-family: inherit; transition: opacity .15s, transform .1s; }
+button:active { transform: scale(.97); }
+input, select, textarea { font-family: inherit; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,102,241,.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,.6); }
+
+/* Dark mode auto-fix inputs */
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: var(--bg-input) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+[data-theme="dark"] input::placeholder { color: var(--text-muted); }
+
+/* Mobile tap */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Prevent layout shift */
+#root { min-height: 100vh; }
+
+/* SweetAlert2 dark */
+[data-theme="dark"] .swal2-popup {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155;
+}
+[data-theme="dark"] .swal2-title { color: #f8fafc !important; }
+[data-theme="dark"] .swal2-html-container { color: #94a3b8 !important; }
+
+/* PIN Pad CSS */
+.pin-pad-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 16px;
+  margin: 24px 0;
+  justify-content: center;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+}
+
+.pin-dot.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.2);
+  box-shadow: 0 0 8px var(--primary);
+}
+
+.pin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+.pin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  width: 60px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: var(--bg-section);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.5rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pin-btn:hover {
+  background: var(--border);
+}
+
+.pin-btn:active {
+  transform: scale(0.9);
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.pin-btn.action {
+  font-size: 1rem;
+  background: transparent;
+  border-color: transparent;
+}
+
+.pin-btn.action:hover {
+  background: var(--bg-section);
+}
+
+.pin-btn.action:active {
+  transform: scale(0.9);
+  background: var(--border);
+  color: var(--text);
+}
+
+/* ==========================================
+   PREMIUM FINTECH MOBILE COMPONENT STYLES
+   ========================================== */
+
+/* Credit Card Deck (Black, Green, White Stack) */
+.credit-card-black {
+  background: #0f1115 !important;
+  color: #ffffff !important;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.18);
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+
+.credit-card-black::after {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+}
+
+.credit-card-green {
+  background: #e2f5e9 !important;
+  color: #15803d !important;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 12px 28px rgba(21,128,61,0.06);
+  text-align: left;
+  border: 1px solid rgba(21,128,61,0.05);
+}
+
+.credit-card-white {
+  background: #ffffff !important;
+  color: #111111 !important;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  text-align: left;
+  border: 1px solid #eef0f3;
+}
+
+/* Modern Rounded Input Box */
+.fintech-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  font-size: 0.95rem;
+  color: var(--text);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.fintech-input:focus {
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px rgba(255,210,51,0.15);
+}
+
+/* Premium Settings & Menu Row Items */
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-radius: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+}
+
+.settings-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.icon-box-yellow { background: #fffbeb; color: #d97706; }
+.icon-box-green  { background: #f0fdf4; color: #16a34a; }
+.icon-box-red    { background: #fef2f2; color: #dc2626; }
+.icon-box-blue   { background: #eff6ff; color: #2563eb; }
+.icon-box-purple { background: #faf5ff; color: #7c3aed; }
+
+/* Fintech Capsule Buttons */
+.btn-fintech {
+  background: var(--primary) !important;
+  color: #111111 !important;
+  border: none !important;
+  border-radius: 26px !important;
+  padding: 14px 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.2px !important;
+  box-shadow: 0 8px 24px rgba(255,210,51,0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-fintech:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 30px rgba(255,210,51,0.3) !important;
+}
+
+.btn-fintech:active {
+  transform: scale(0.96) !important;
+}
+
+

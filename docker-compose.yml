@@ -1,0 +1,49 @@
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: catatan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       catatan
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres_password_ganti_ini
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: catatan-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST:     db
+      DB_PORT:     5432
+      DB_NAME:     catatan
+      DB_USER:     postgres
+      DB_PASSWORD: postgres_password_ganti_ini
+      JWT_SECRET:  jwt_secret_ganti_dengan_random_string_panjang
+      UPLOAD_DIR:  /uploads
+      PORT:        3001
+    volumes:
+      - uploads_data:/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: catatan-frontend
+    restart: unless-stopped
+    ports:
+      - "8091:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+  uploads_data:
