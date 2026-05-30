@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [isPinMode, setIsPinMode] = useState(false);
   const [pinDigits, setPinDigits] = useState([]);
   const [cachedUser, setCachedUser] = useState('');
+  const [userHasPin, setUserHasPin] = useState(false);
 
   const { login }  = useAuth();
   const { dark, toggle } = useTheme();
@@ -30,6 +31,27 @@ export default function LoginPage() {
       setIsPinMode(true);
     }
   }, []);
+
+  const checkUserPin = async (uname) => {
+    if (!uname) {
+      setUserHasPin(false);
+      return;
+    }
+    try {
+      const res = await apiFetch(`/user/has-pin?username=${encodeURIComponent(uname.toLowerCase().trim())}`);
+      setUserHasPin(!!res.hasPin);
+    } catch(e) {
+      setUserHasPin(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isPinMode) return;
+    const delay = setTimeout(() => {
+      checkUserPin(username);
+    }, 500);
+    return () => clearTimeout(delay);
+  }, [username, isPinMode]);
 
   const doLogin = async () => {
     if (!username || !password) return;
@@ -199,8 +221,17 @@ export default function LoginPage() {
               {loading ? '⏳ Masuk...' : '🔐 Masuk'}
             </button>
             
-            {cachedUser && localStorage.getItem('hasPinSet') === 'true' && (
-              <button style={st.switchBtn} onClick={() => setIsPinMode(true)}>
+            {((cachedUser && localStorage.getItem('hasPinSet') === 'true') || userHasPin) && (
+              <button 
+                style={st.switchBtn} 
+                onClick={() => {
+                  const targetUser = userHasPin ? username.toLowerCase().trim() : cachedUser;
+                  setCachedUser(targetUser);
+                  localStorage.setItem('lastUsername', targetUser);
+                  localStorage.setItem('hasPinSet', 'true');
+                  setIsPinMode(true);
+                }}
+              >
                 Masuk dengan PIN 👤
               </button>
             )}
