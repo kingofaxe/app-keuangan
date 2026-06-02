@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Swal from 'sweetalert2';
 import { apiFetch } from '../api';
 
 export default function TambahForm({ data, token, wallet, editTx, onRefresh, onDone }) {
@@ -13,6 +14,16 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
   const [file,     setFile]     = useState(null);
   const [uploading,setUploading]= useState(false);
   const [showCalc, setShowCalc] = useState(false);
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    if (wallet && token) {
+      apiFetch(`/templates?wallet_id=${wallet.id}`, {}, token)
+        .then(res => setTemplates(res.slice(0, 5)))
+        .catch(err => console.error(err));
+    }
+  }, [wallet, token]);
   const [calcExpression, setCalcExpression] = useState('');
   const fileRef = useRef();
 
@@ -94,8 +105,51 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
         setUploading(false);
       }
 
+      // Simpan sebagai template jika dicentang
+      if (saveAsTemplate && !isEdit && tx?.id) {
+        try {
+          const { value: templateName } = await Swal.fire({
+            title: 'Simpan sebagai Template',
+            input: 'text',
+            inputLabel: 'Nama Template Cepat',
+            inputValue: (selectedCat?.name || '') + ' ' + amount,
+            showCancelButton: true,
+            confirmButtonColor: 'var(--primary)',
+            confirmButtonText: 'Simpan',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) => {
+              if (!value) return 'Nama template wajib diisi!';
+            }
+          });
+
+          if (templateName) {
+            await apiFetch('/templates', {
+              method: 'POST',
+              body: JSON.stringify({
+                wallet_id: wallet.id,
+                category_id: Number(catId),
+                sub_category_id: subCatId ? Number(subCatId) : null,
+                name: templateName,
+                icon: '⚡',
+                type: selectedCat?.type || 'expense',
+                amount: nominal,
+                remark: remark
+              })
+            }, token);
+          }
+        } catch (err) {
+          console.error('Gagal menyimpan template:', err);
+        }
+      }
+
       onRefresh();
-      if (!isEdit) { setAmount(''); setCatId(''); setSubCatId(''); setDate(today()); setRemark(''); setFile(null); }
+      if (!isEdit) { 
+        setAmount(''); setCatId(''); setSubCatId(''); setDate(today()); setRemark(''); setFile(null); setSaveAsTemplate(false);
+        // Refresh templates list
+        apiFetch(`/templates?wallet_id=${wallet.id}`, {}, token)
+          .then(res => setTemplates(res.slice(0, 5)))
+          .catch(err => console.error(err));
+      }
       onDone();
     } catch(e) { setError(e.message); setUploading(false); }
     finally { setSaving(false); }
@@ -114,6 +168,41 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
   return (
     <div style={isEdit?{}:s.card}>
       {!isEdit && <h3 style={{marginBottom:14,fontSize:15}}>➕ Tambah Transaksi</h3>}
+      
+      {!isEdit && templates.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 10, marginBottom: 12, scrollbarWidth: 'none' }}>
+          {templates.map(t => (
+            <button
+              key={t.id}
+              type="button"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '6px 12px',
+                borderRadius: 20,
+                border: '1.5px solid var(--border)',
+                background: 'var(--bg-card)',
+                color: 'var(--text)',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+              onClick={() => {
+                setAmount(Number(t.amount).toLocaleString('id-ID'));
+                setCatId(String(t.category_id));
+                setSubCatId(String(t.sub_category_id || ''));
+                setRemark(t.remark || '');
+              }}
+            >
+              <span>{t.icon || '⚡'}</span>
+              <span>{t.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {error && <div style={s.err}>{error}</div>}
 
       <div style={s.fg}>
@@ -274,6 +363,21 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf"
           style={{display:'none'}} onChange={e=>{ if(e.target.files[0]) setFile(e.target.files[0]); }}/>
       </div>
+
+      {!isEdit && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <input 
+            type="checkbox" 
+            id="saveAsTemplate" 
+            checked={saveAsTemplate} 
+            onChange={e => setSaveAsTemplate(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: 'pointer' }}
+          />
+          <label htmlFor="saveAsTemplate" style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-sub)', cursor: 'pointer', userSelect: 'none' }}>
+            💾 Simpan juga sebagai template cepat
+          </label>
+        </div>
+      )}
 
       <button style={{...s.btn,opacity:(saving||uploading)?0.7:1}} onClick={save} disabled={saving||uploading}>
         {uploading?'⏳ Mengupload file...' : saving?'⏳ Menyimpan...' : isEdit?'💾 Update':'💾 Simpan'}

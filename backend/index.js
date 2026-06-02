@@ -383,6 +383,113 @@ app.get('/api/search', auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ─── TRANSACTION TEMPLATES ────────────────────
+app.get('/api/templates', auth, async (req, res) => {
+  try {
+    const { wallet_id } = req.query;
+    if (!wallet_id) return res.status(400).json({ error: 'wallet_id wajib diisi' });
+    
+    const w = await pool.query('SELECT id FROM wallets WHERE id=$1 AND user_id=$2', [wallet_id, req.user.id]);
+    if (!w.rows.length) return res.status(403).json({ error: 'Forbidden' });
+
+    const r = await pool.query(`
+      SELECT t.*, c.name AS category_name, sc.name AS sub_category_name
+      FROM transaction_templates t
+      LEFT JOIN categories c ON c.id = t.category_id
+      LEFT JOIN sub_categories sc ON sc.id = t.sub_category_id
+      WHERE t.wallet_id = $1
+      ORDER BY t.usage_count DESC, t.id DESC
+    `, [wallet_id]);
+    res.json(r.rows);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/templates', auth, async (req, res) => {
+  try {
+    const { wallet_id, category_id, sub_category_id, name, icon, type, amount, remark } = req.body;
+    if (!wallet_id || !category_id || !name || !type || !amount) {
+      return res.status(400).json({ error: 'Field wajib diisi: wallet_id, category_id, name, type, amount' });
+    }
+    const w = await pool.query('SELECT id FROM wallets WHERE id=$1 AND user_id=$2', [wallet_id, req.user.id]);
+    if (!w.rows.length) return res.status(403).json({ error: 'Forbidden' });
+
+    const r = await pool.query(`
+      INSERT INTO transaction_templates (wallet_id, category_id, sub_category_id, name, icon, type, amount, remark)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `, [wallet_id, category_id, sub_category_id || null, name, icon || '📋', type, amount, remark || '']);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/templates/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, icon, category_id, sub_category_id, type, amount, remark } = req.body;
+    
+    const check = await pool.query(`
+      SELECT t.id FROM transaction_templates t 
+      JOIN wallets w ON w.id = t.wallet_id 
+      WHERE t.id = $1 AND w.user_id = $2
+    `, [id, req.user.id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Template tidak ditemukan' });
+
+    const r = await pool.query(`
+      UPDATE transaction_templates 
+      SET name = $1, icon = $2, category_id = $3, sub_category_id = $4, type = $5, amount = $6, remark = $7
+      WHERE id = $8
+      RETURNING *
+    `, [name, icon || '📋', category_id, sub_category_id || null, type, amount, remark || '', id]);
+    res.json(r.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/templates/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const check = await pool.query(`
+      SELECT t.id FROM transaction_templates t 
+      JOIN wallets w ON w.id = t.wallet_id 
+      WHERE t.id = $1 AND w.user_id = $2
+    `, [id, req.user.id]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Template tidak ditemukan' });
+
+    await pool.query('DELETE FROM transaction_templates WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/templates/:id/use', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.body;
+    if (!date) return res.status(400).json({ error: 'Tanggal wajib diisi' });
+
+    const rTemp = await pool.query(`
+      SELECT t.* FROM transaction_templates t 
+      JOIN wallets w ON w.id = t.wallet_id 
+      WHERE t.id = $1 AND w.user_id = $2
+    `, [id, req.user.id]);
+    if (!rTemp.rows.length) return res.status(404).json({ error: 'Template tidak ditemukan' });
+
+    const t = rTemp.rows[0];
+
+    const tx = await pool.query(`
+      INSERT INTO transactions (wallet_id, category_id, sub_category_id, type, amount, date, remark)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `, [t.wallet_id, t.category_id, t.sub_category_id, t.type, t.amount, date, t.remark]);
+
+    await pool.query(`
+      UPDATE transaction_templates 
+      SET usage_count = usage_count + 1, last_used_at = NOW() 
+      WHERE id = $1
+    `, [id]);
+
+    res.json(tx.rows[0]);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, async () => {
   console.log(`Backend v2 running on port ${PORT}`);
@@ -405,6 +512,30 @@ app.listen(PORT, async () => {
     console.log('Migration: pin_hash column ready');
   } catch(e) {
     console.log('Migration note (pin_hash):', e.message);
+  }
+  // Migration: create transaction_templates table and index if not exists
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transaction_templates (
+        id              SERIAL PRIMARY KEY,
+        wallet_id       INTEGER REFERENCES wallets(id) ON DELETE CASCADE,
+        category_id     INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+        sub_category_id INTEGER REFERENCES sub_categories(id) ON DELETE SET NULL,
+        name            VARCHAR(100) NOT NULL,
+        icon            VARCHAR(10) DEFAULT '📋',
+        type            VARCHAR(10) NOT NULL CHECK (type IN ('income','expense')),
+        amount          NUMERIC(15,2) NOT NULL,
+        remark          TEXT DEFAULT '',
+        usage_count     INTEGER DEFAULT 0,
+        last_used_at    TIMESTAMP DEFAULT NULL,
+        sort_order      INTEGER DEFAULT 0,
+        created_at      TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_templates_wallet ON transaction_templates(wallet_id);
+    `);
+    console.log('Migration: transaction_templates table and index ready');
+  } catch(e) {
+    console.log('Migration note (transaction_templates):', e.message);
   }
 });
 

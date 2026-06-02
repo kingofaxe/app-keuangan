@@ -14,6 +14,7 @@ import Kategori      from '../components/Kategori';
 import Dompet        from '../components/Dompet';
 import Settings      from '../components/Settings';
 import DashboardReal from '../components/DashboardReal';
+import TransaksiCepat from '../components/TransaksiCepat';
 
 const MENU = [
   { id:'dashboard', icon:'📊', label:'Tahunan'  },
@@ -22,6 +23,7 @@ const MENU = [
   { id:'tabungan',  icon:'🏦', label:'Tabungan' },
   { id:'bulanan',   icon:'📅', label:'Bulanan'  },
   { id:'tambah',    icon:'➕', label:'Tambah'   },
+  { id:'cepat',     icon:'⚡', label:'Cepat'    },
   { id:'riwayat',   icon:'📋', label:'Riwayat'  },
   { id:'kategori',  icon:'🏷️', label:'Kategori' },
   { id:'dompet',    icon:'👛', label:'Dompet'   },
@@ -263,6 +265,7 @@ export default function MainPage() {
           {section==='bulanan'   && <Bulanan      data={activeData}/>}
           {section==='riwayat'   && <Riwayat      data={activeData} token={token} wallet={wallet} onRefresh={refresh} onEdit={setEditTx}/>}
           {section==='tambah'    && <TambahForm   data={activeData} token={token} wallet={wallet} onRefresh={refresh} onDone={()=>setSection('tambah')}/>}
+          {section==='cepat'     && <TransaksiCepat token={token} wallet={wallet} data={activeData} onRefresh={refresh}/>}
           {section==='kategori'  && <Kategori     data={activeData} token={token} wallet={wallet} onRefresh={refresh}/>}
           {section==='dompet'    && <Dompet       wallets={wallets} token={token} onRefresh={refreshWallets}/>}
           {section==='settings'  && <Settings     token={token} allCategories={prefs._allCats||[]} prefs={prefs} onPrefsChange={p=>{

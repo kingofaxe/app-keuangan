@@ -108,3 +108,25 @@ CREATE TABLE IF NOT EXISTS real_balance_items (
 
 CREATE INDEX IF NOT EXISTS idx_real_balance_user ON real_balance_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_preferences_user  ON user_preferences(user_id);
+
+-- =============================================
+-- SCHEMA v4 ADDITIONS: TRANSACTION TEMPLATES
+-- =============================================
+CREATE TABLE IF NOT EXISTS transaction_templates (
+  id              SERIAL PRIMARY KEY,
+  wallet_id       INTEGER REFERENCES wallets(id) ON DELETE CASCADE,
+  category_id     INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  sub_category_id INTEGER REFERENCES sub_categories(id) ON DELETE SET NULL,
+  name            VARCHAR(100) NOT NULL,
+  icon            VARCHAR(10) DEFAULT '📋',
+  type            VARCHAR(10) NOT NULL CHECK (type IN ('income','expense')),
+  amount          NUMERIC(15,2) NOT NULL,
+  remark          TEXT DEFAULT '',
+  usage_count     INTEGER DEFAULT 0,
+  last_used_at    TIMESTAMP DEFAULT NULL,
+  sort_order      INTEGER DEFAULT 0,
+  created_at      TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_templates_wallet ON transaction_templates(wallet_id);
+
