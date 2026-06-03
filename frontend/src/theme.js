@@ -245,7 +245,7 @@ export const sInput = {
 
 // Action buttons
 export const sBtnEdit   = { background:C.info,    color:'#fff', border:'none', padding:'5px 10px', borderRadius:R.sm, fontSize:T.sm, cursor:'pointer' };
-export const sBtnDelete = { background:C.expense, color:'fff', border:'none', padding:'5px 10px', borderRadius:R.sm, fontSize:T.sm, cursor:'pointer' };
+export const sBtnDelete = { background:C.expense, color:'#fff', border:'none', padding:'5px 10px', borderRadius:R.sm, fontSize:T.sm, cursor:'pointer' };
 export const sBtnSave   = { background:C.income,  color:'#fff', border:'none', padding:'7px 14px', borderRadius:R.sm, fontSize:T.base, cursor:'pointer', fontWeight:600 };
 export const sBtnCancel = { background:C.gray400, color:'#fff', border:'none', padding:'7px 14px', borderRadius:R.sm, fontSize:T.base, cursor:'pointer' };
 

@@ -8,6 +8,12 @@ const EMOJIS = [
   '🎮','🍿','🐾','💊','🎓','🔧','🎁','📦',
 ];
 
+// Helper function defined at module scope so it's available before component init
+function today() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
 export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,11 +61,6 @@ export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
   };
 
   const getRawAmount = () => Number(amount.replace(/\D/g,'')) || 0;
-
-  const today = () => {
-    const d = new Date();
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  };
 
   const resetForm = () => {
     setName('');
@@ -377,7 +378,7 @@ const s = {
   err:        { background: '#fee2e2', color: '#991b1b', padding: '10px 14px', borderRadius: 12, fontSize: 13, marginBottom: 14 },
   grid:       { display: 'flex', flexDirection: 'column', gap: 10 },
   item:       { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,.04)' },
-  itemIcon:   { width: 42, height: 42, borderRadius: 12, background: 'var(--bg-section)', display: 'flex', alignItems: 'center', justifyContext: 'center', justifyContent: 'center', fontSize: 22 },
+  itemIcon:   { width: 42, height: 42, borderRadius: 12, background: 'var(--bg-section)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 },
   itemName:   { fontWeight: 800, fontSize: 14, color: 'var(--text)' },
   itemMeta:   { fontSize: 11, color: 'var(--text-sub)', marginTop: 2 },
   itemUsage:  { fontSize: 10, color: 'var(--text-muted)', marginTop: 3 },
