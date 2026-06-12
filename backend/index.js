@@ -319,7 +319,23 @@ app.put('/api/transactions/:id', auth, async (req, res) => {
       [category_id,sub_category_id||null,type,amount,date,remark||'',req.params.id,req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Not found' });
-    res.json(r.rows[0]);
+
+    // Auto-rename file_name if transaction has attachment
+    const tx = r.rows[0];
+    if (tx.file_path) {
+      const d = new Date(date);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yy = String(d.getFullYear()).slice(-2);
+      const remarkPart = (remark || '').trim() || 'lampiran';
+      const nominalPart = Number(amount).toLocaleString('id-ID');
+      const ext = path.extname(tx.file_path);
+      const newName = `${dd}${mm}${yy} ${remarkPart} ${nominalPart}${ext}`;
+      await pool.query('UPDATE transactions SET file_name=$1 WHERE id=$2', [newName, tx.id]);
+      tx.file_name = newName;
+    }
+
+    res.json(tx);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

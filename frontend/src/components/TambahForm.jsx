@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import { apiFetch } from '../api';
 
@@ -13,6 +13,7 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
   const [error,    setError]    = useState('');
   const [file,     setFile]     = useState(null);
   const [uploading,setUploading]= useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [showCalc, setShowCalc] = useState(false);
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -38,6 +39,31 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
       setAmount(''); setCatId(''); setSubCatId(''); setDate(today()); setRemark(''); setFile(null);
     }
   }, [editTx]);
+
+  // Generate preview URL for newly selected file
+  useEffect(() => {
+    if (file && file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
+    }
+  }, [file]);
+
+  // Build auto file name: DDMMYY keterangan nominal
+  const autoFileName = useMemo(() => {
+    const d = date || today();
+    const parts = d.split('-'); // YYYY-MM-DD
+    const dd = parts[2] || '01';
+    const mm = parts[1] || '01';
+    const yy = (parts[0] || '2026').slice(-2);
+    const datePart = `${dd}${mm}${yy}`;
+    const remarkPart = (remark || '').trim() || 'lampiran';
+    const rawAmt = Number(amount.replace(/\D/g, '')) || 0;
+    const nominalPart = rawAmt.toLocaleString('id-ID');
+    return `${datePart} ${remarkPart} ${nominalPart}`;
+  }, [date, remark, amount]);
 
   const selectedCat = data.categories.find(c=>String(c.id)===catId);
   const subCats     = selectedCat?.sub_categories||[];
@@ -96,11 +122,13 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
       if (isEdit) tx = await apiFetch(`/transactions/${editTx.id}`, { method:'PUT', body:JSON.stringify(payload) }, token);
       else        tx = await apiFetch('/transactions', { method:'POST', body:JSON.stringify(payload) }, token);
 
-      // Upload file jika ada
+      // Upload file jika ada — rename file sesuai format auto
       if (file && tx?.id) {
         setUploading(true);
+        const ext = file.name.substring(file.name.lastIndexOf('.'));
+        const renamedFile = new File([file], autoFileName + ext, { type: file.type });
         const fd = new FormData();
-        fd.append('file', file);
+        fd.append('file', renamedFile);
         await apiFetch(`/transactions/${tx.id}/upload`, { method:'POST', body:fd }, token);
         setUploading(false);
       }
@@ -341,17 +369,32 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
       <div style={s.fg}>
         <label style={s.label}>Lampiran <span style={{color:'#9ca3af',fontWeight:400}}>(foto struk / PDF, max 10MB)</span></label>
         {hasFile && !file ? (
-          <div style={s.filePreview}>
-            <span style={{fontSize:13,flex:1}}>
-              {editTx.file_name?.match(/\.(pdf)$/i) ? '📄' : '🖼️'} {editTx.file_name}
-            </span>
-            <a href={editTx.file_path} target="_blank" rel="noreferrer" style={s.fileLink}>Lihat</a>
-            <button style={s.fileDel} onClick={removeFile}>✕</button>
+          /* ── Edit mode: show existing attachment as preview ── */
+          <div style={s.attachPreviewWrap}>
+            {editTx.file_name?.match(/\.(pdf)$/i) ? (
+              <a href={editTx.file_path} target="_blank" rel="noreferrer" style={s.pdfPreview}>
+                <span style={{fontSize:36}}>📄</span>
+                <span style={{fontSize:11,color:'var(--text-sub)',marginTop:4}}>PDF Document</span>
+              </a>
+            ) : (
+              <a href={editTx.file_path} target="_blank" rel="noreferrer" style={{display:'block'}}>
+                <img src={editTx.file_path} alt="Lampiran" style={s.imgPreview} />
+              </a>
+            )}
+            <button style={s.fileDelFloat} onClick={removeFile} title="Hapus lampiran">✕</button>
           </div>
         ) : file ? (
-          <div style={s.filePreview}>
-            <span style={{fontSize:13,flex:1}}>{file.type.includes('pdf')?'📄':'🖼️'} {file.name}</span>
-            <button style={s.fileDel} onClick={()=>setFile(null)}>✕ Hapus</button>
+          /* ── Newly selected file: preview ── */
+          <div style={s.attachPreviewWrap}>
+            {file.type.includes('pdf') ? (
+              <div style={s.pdfPreview}>
+                <span style={{fontSize:36}}>📄</span>
+                <span style={{fontSize:11,color:'var(--text-sub)',marginTop:4}}>PDF Document</span>
+              </div>
+            ) : previewUrl ? (
+              <img src={previewUrl} alt="Preview" style={s.imgPreview} />
+            ) : null}
+            <button style={s.fileDelFloat} onClick={()=>setFile(null)} title="Hapus lampiran">✕</button>
           </div>
         ) : (
           <div style={s.uploadArea} onClick={()=>fileRef.current.click()}>
@@ -400,9 +443,10 @@ const s={
   btn:         {background:'var(--primary)',color:'#111',width:'100%',padding:14,fontSize:14,fontWeight:700,border:'none',borderRadius:14},
   err:         {background:'#fee2e2',color:'#991b1b',padding:'10px 14px',borderRadius:12,fontSize:13,marginBottom:14},
   uploadArea:  {border:'2px dashed var(--border)',borderRadius:14,padding:'20px 16px',textAlign:'center',cursor:'pointer',background:'var(--bg-section)'},
-  filePreview: {display:'flex',alignItems:'center',gap:8,padding:'10px 14px',border:'1.5px solid var(--border)',borderRadius:12,background:'var(--bg-section)'},
-  fileLink:    {fontSize:12,color:'var(--primary)',fontWeight:700,textDecoration:'none'},
-  fileDel:     {background:'#fee2e2',color:'#dc2626',border:'none',padding:'4px 10px',borderRadius:8,fontSize:12,cursor:'pointer'},
+  attachPreviewWrap: {position:'relative',display:'inline-block',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg-section)'},
+  imgPreview:  {display:'block',maxWidth:'100%',maxHeight:220,borderRadius:12,objectFit:'cover'},
+  pdfPreview:  {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'28px 40px',background:'var(--bg-section)',borderRadius:12,textDecoration:'none'},
+  fileDelFloat:{position:'absolute',top:8,right:8,background:'rgba(220,38,38,0.9)',color:'#fff',border:'none',width:28,height:28,borderRadius:'50%',fontSize:14,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 8px rgba(0,0,0,0.2)'},
   btnCalcTrigger: {padding:'10px 14px',borderRadius:12,fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s ease'},
   calcPopover: {position:'absolute',top:'100%',right:0,zIndex:100,width:'100%',maxWidth:320,background:'var(--bg-card)',border:'1.5px solid var(--border)',borderRadius:16,boxShadow:'var(--shadow-lg)',padding:14,marginTop:6},
   calcHeader: {display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8},
