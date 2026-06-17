@@ -423,7 +423,7 @@ app.get('/api/templates', auth, async (req, res) => {
 app.post('/api/templates', auth, async (req, res) => {
   try {
     const { wallet_id, category_id, sub_category_id, name, icon, type, amount, remark } = req.body;
-    if (!wallet_id || !category_id || !name || !type || !amount) {
+    if (!wallet_id || !category_id || !name || !type || amount === undefined) {
       return res.status(400).json({ error: 'Field wajib diisi: wallet_id, category_id, name, type, amount' });
     }
     const w = await pool.query('SELECT id FROM wallets WHERE id=$1 AND user_id=$2', [wallet_id, req.user.id]);

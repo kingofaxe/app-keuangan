@@ -91,7 +91,7 @@ export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
     if (!name.trim()) return swalError('Nama template wajib diisi');
     if (!catId) return swalError('Pilih kategori');
     const nominal = getRawAmount();
-    if (nominal <= 0) return swalError('Masukkan nominal yang valid');
+    // if (nominal <= 0) return swalError('Masukkan nominal yang valid');
 
     const payload = {
       wallet_id: wallet.id,
@@ -147,6 +147,9 @@ export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
   const quickRecord = async () => {
     if (!activeTemplateForRecord) return;
     if (!recordDate) return swalError('Pilih tanggal transaksi');
+    if (Number(activeTemplateForRecord.amount) <= 0) {
+      return swalError('Template ini tidak memiliki nominal, gunakan di menu Tambah Transaksi untuk mengisi nominalnya.');
+    }
 
     setLoading(true);
     try {
@@ -299,8 +302,8 @@ export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ ...s.itemAmount, color: t.type === 'income' ? '#22c55e' : '#ef4444' }}>
-                        {t.type === 'income' ? '+' : '-'} {fRp(t.amount)}
+                      <div style={{ ...s.itemAmount, color: Number(t.amount) > 0 ? (t.type === 'income' ? '#22c55e' : '#ef4444') : 'var(--text-sub)' }}>
+                        {Number(t.amount) > 0 ? `${t.type === 'income' ? '+' : '-'} ${fRp(t.amount)}` : '✍️ Nominal Bebas'}
                       </div>
                       <div style={{ display: 'flex', gap: 4, marginTop: 6, justifyContent: 'flex-end' }}>
                         <button style={s.iconEditBtn} onClick={() => openEdit(t)} title="Edit Template">✏️</button>
@@ -338,8 +341,8 @@ export default function TransaksiCepat({ token, wallet, data, onRefresh }) {
               <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: 2 }}>
                 {activeTemplateForRecord.category_name}
               </div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 12, color: activeTemplateForRecord.type === 'income' ? '#22c55e' : '#ef4444' }}>
-                {activeTemplateForRecord.type === 'income' ? '+' : '-'} {fRp(activeTemplateForRecord.amount)}
+              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 12, color: Number(activeTemplateForRecord.amount) > 0 ? (activeTemplateForRecord.type === 'income' ? '#22c55e' : '#ef4444') : 'var(--text-sub)' }}>
+                {Number(activeTemplateForRecord.amount) > 0 ? `${activeTemplateForRecord.type === 'income' ? '+' : '-'} ${fRp(activeTemplateForRecord.amount)}` : '✍️ Nominal Bebas'}
               </div>
             </div>
 

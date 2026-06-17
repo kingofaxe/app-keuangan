@@ -218,7 +218,11 @@ export default function TambahForm({ data, token, wallet, editTx, onRefresh, onD
                 whiteSpace: 'nowrap'
               }}
               onClick={() => {
-                setAmount(Number(t.amount).toLocaleString('id-ID'));
+                if (t.amount && Number(t.amount) > 0) {
+                  setAmount(Number(t.amount).toLocaleString('id-ID'));
+                } else {
+                  setAmount('');
+                }
                 setCatId(String(t.category_id));
                 setSubCatId(String(t.sub_category_id || ''));
                 setRemark(t.remark || '');
