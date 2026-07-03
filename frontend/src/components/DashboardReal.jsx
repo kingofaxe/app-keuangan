@@ -1,5 +1,5 @@
 import { swalConfirm } from '../swal.js';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch, fRp } from '../api';
 
 export default function DashboardReal({ token, wallets, allData, prefs, readOnlyItems }) {
@@ -12,6 +12,8 @@ export default function DashboardReal({ token, wallets, allData, prefs, readOnly
   const [editRow,  setEditRow]  = useState({});
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [dragIdx,  setDragIdx]  = useState(null);
+  const dragOver = useRef(null);
 
   useEffect(() => {
     if (isReadOnly) {
@@ -84,6 +86,24 @@ export default function DashboardReal({ token, wallets, allData, prefs, readOnly
     if (!r.isConfirmed) return;
     try{await apiFetch(`/real-balance/${id}`,{method:'DELETE'},token);setItems(prev=>prev.filter(i=>i.id!==id));}
     catch(e){setError(e.message);}
+  };
+
+  /* ── DRAG & DROP REORDER ── */
+  const onDragStart = i => { setDragIdx(i); };
+  const onDragEnter = i => { dragOver.current = i; };
+  const onDragOver  = e => e.preventDefault();
+  const onDragEnd   = async () => {
+    const from = dragIdx;
+    const to   = dragOver.current;
+    setDragIdx(null); dragOver.current = null;
+    if (from === null || to === null || from === to) return;
+    const newOrder = [...items];
+    const [moved]  = newOrder.splice(from, 1);
+    newOrder.splice(to, 0, moved);
+    setItems(newOrder); // optimistic UI
+    try {
+      await apiFetch('/real-balance/reorder', { method:'PUT', body: JSON.stringify({ order: newOrder.map(i=>i.id) }) }, token);
+    } catch(e) { setError(e.message); }
   };
 
   const selisihAbs   = Math.abs(selisih);
@@ -181,10 +201,30 @@ export default function DashboardReal({ token, wallets, allData, prefs, readOnly
       {/* ══ ASET & HUTANG MANUAL ══ */}
       <div style={s.section}>
         <div style={s.secTitle}>💼 Aset & Hutang Lainnya</div>
-        <div style={{fontSize:12,color:'var(--text-sub)',marginBottom:12}}>Rekening bank, e-wallet, cash, hutang, dll</div>
+        <div style={{fontSize:12,color:'var(--text-sub)',marginBottom:8}}>Rekening bank, e-wallet, cash, hutang, dll</div>
+        {!isReadOnly && items.length > 1 && (
+          <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:10,display:'flex',alignItems:'center',gap:6}}>
+            <span>⠿</span> <span>Drag untuk ubah urutan</span>
+          </div>
+        )}
 
-        {items.map(item => (
-          <div key={item.id} style={{...s.itemRow,borderLeft:`4px solid ${item.type==='asset'?'#22c55e':'#ef4444'}`}}>
+        {items.map((item, idx) => {
+          const isDragging = dragIdx === idx;
+          return (
+          <div key={item.id}
+            draggable={!isReadOnly && editId !== item.id}
+            onDragStart={()=>onDragStart(idx)}
+            onDragEnter={()=>onDragEnter(idx)}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+            style={{
+              ...s.itemRow,
+              borderLeft:`4px solid ${item.type==='asset'?'#22c55e':'#ef4444'}`,
+              opacity: isDragging ? 0.4 : 1,
+              background: isDragging ? 'var(--primary-light)' : 'var(--bg-card)',
+              transform: isDragging ? 'scale(0.97)' : 'scale(1)',
+              transition: 'all .15s',
+            }}>
             {!isReadOnly && editId===item.id ? (
               <div style={{flex:1}}>
                 <div style={{display:'flex',gap:6,marginBottom:6,flexWrap:'wrap'}}>
@@ -209,12 +249,14 @@ export default function DashboardReal({ token, wallets, allData, prefs, readOnly
                 <span style={{fontWeight:700,fontSize:13,color:item.type==='asset'?'#22c55e':'#ef4444',marginRight:8,whiteSpace:'nowrap'}}>
                   {item.type==='asset'?'+':'−'} {fRp(item.amount)}
                 </span>
+                {!isReadOnly && <span style={{fontSize:18,cursor:'grab',color:'var(--text-muted)',userSelect:'none'}}>⠿</span>}
                 {!isReadOnly && <button style={s.btnEdit} onClick={()=>{setEditId(item.id);setEditRow({label:item.label,amtStr:Number(item.amount).toLocaleString('id-ID'),type:item.type});}}>✏️</button>}
                 {!isReadOnly && <button style={s.btnDel} onClick={()=>delItem(item.id)}>🗑️</button>}
               </>
             )}
           </div>
-        ))}
+          );
+        })}
 
         {items.length > 0 && (
           <div style={{margin:'8px 0 4px'}}>
